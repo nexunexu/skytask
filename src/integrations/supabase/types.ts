@@ -14,13 +14,280 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assistant_activity: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          details: Json
+          id: string
+          kind: string
+          operation_id: string | null
+          status: string
+          summary: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          kind: string
+          operation_id?: string | null
+          status: string
+          summary: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          kind?: string
+          operation_id?: string | null
+          status?: string
+          summary?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      attachments: {
+        Row: {
+          created_at: string
+          id: string
+          mime_type: string
+          name: string
+          note_id: string | null
+          path: string
+          size: number
+          task_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mime_type: string
+          name: string
+          note_id?: string | null
+          path: string
+          size: number
+          task_id?: string | null
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mime_type?: string
+          name?: string
+          note_id?: string | null
+          path?: string
+          size?: number
+          task_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attachments_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attachments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      copilot_operations: {
+        Row: {
+          action: string
+          before_record: Json | null
+          changes: Json
+          conversation_id: string
+          created_at: string
+          entity: string
+          id: string
+          record_id: string | null
+          result: Json | null
+          status: string
+          summary: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          before_record?: Json | null
+          changes?: Json
+          conversation_id: string
+          created_at?: string
+          entity: string
+          id?: string
+          record_id?: string | null
+          result?: Json | null
+          status?: string
+          summary: string
+          user_id?: string
+        }
+        Update: {
+          action?: string
+          before_record?: Json | null
+          changes?: Json
+          conversation_id?: string
+          created_at?: string
+          entity?: string
+          id?: string
+          record_id?: string | null
+          result?: Json | null
+          status?: string
+          summary?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      goals: {
+        Row: {
+          created_at: string
+          id: string
+          progress: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          progress?: number
+          title: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          progress?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          tasks_extracted: number
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          tasks_extracted?: number
+          user_id?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          tasks_extracted?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      task_lists: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          done: boolean
+          due_at: string | null
+          id: string
+          list_id: string | null
+          source: string
+          tag: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          done?: boolean
+          due_at?: string | null
+          id?: string
+          list_id?: string | null
+          source?: string
+          tag?: string
+          title: string
+          user_id?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          done?: boolean
+          due_at?: string | null
+          id?: string
+          list_id?: string | null
+          source?: string
+          tag?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "task_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      execute_copilot_operation: {
+        Args: { operation_id: string }
+        Returns: Json
+      }
+      log_assistant_event: {
+        Args: {
+          conversation: string
+          event_details: Json
+          event_kind: string
+          event_status: string
+          event_summary: string
+        }
+        Returns: undefined
+      }
+      run_audited_copilot_operation: {
+        Args: { confirmed: boolean; operation_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
