@@ -3,13 +3,14 @@ import { useMemo, useRef, useState } from "react";
 import {
   Search, LayoutDashboard, CheckSquare, NotebookPen, CalendarDays, Bell, Target, BarChart3, Settings,
   Check, TrendingUp, Flame, Trophy, Briefcase, Plus, ArrowRight, Sparkles, Globe, ChevronDown, Calendar,
-  Keyboard, Mic, Paperclip, Navigation, Trash2, LogOut, Menu, X, Square, Loader2,
+  Keyboard, Mic, Paperclip, MessageSquare, History, Navigation, Trash2, LogOut, Menu, X, Square, Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useData, computeKpis, formatDue, tagClass, type Task } from "@/lib/use-data";
 import { useVoice } from "@/lib/use-voice";
 import { ProductivityChart, Ring } from "@/components/dash/ProductivityChart";
+import { CopilotPanel, JournalView } from "@/components/dash/Copilot";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
 });
 
-type Section = "overview" | "tasks" | "notes" | "calendar" | "reminders" | "goals" | "stats" | "settings";
+type Section = "overview" | "tasks" | "notes" | "calendar" | "reminders" | "goals" | "stats" | "assistant" | "journal" | "settings";
 const NAV: { id: Section; label: string; icon: typeof Search }[] = [
   { id: "overview", label: "Vue d'ensemble", icon: LayoutDashboard },
   { id: "tasks", label: "Tâches", icon: CheckSquare },
@@ -34,11 +35,24 @@ const NAV: { id: Section; label: string; icon: typeof Search }[] = [
   { id: "reminders", label: "Rappels", icon: Bell },
   { id: "goals", label: "Objectifs", icon: Target },
   { id: "stats", label: "Statistiques", icon: BarChart3 },
+  { id: "assistant", label: "Assistant", icon: MessageSquare },
+  { id: "journal", label: "Journal", icon: History },
   { id: "settings", label: "Paramètres", icon: Settings },
 ];
 
-const toggleTask = (t: Task) =>
-  supabase.from("tasks").update({ done: !t.done, completed_at: t.done ? null : new Date().toISOString() }).eq("id", t.id);
+const reloadData = () => window.dispatchEvent(new Event("ultra:reload"));
+async function toggleTask(t: Task) {
+  const { error } = await supabase.from("tasks").update({ done: !t.done, completed_at: t.done ? null : new Date().toISOString() }).eq("id", t.id);
+  if (error) return toast.error(`Impossible de modifier la tâche : ${error.message}`);
+  toast.success(t.done ? "Tâche rouverte" : "Tâche terminée ✅");
+  reloadData();
+}
+async function deleteRow(table: "tasks" | "notes" | "goals" | "task_lists", id: string, label: string) {
+  const { error } = await supabase.from(table).delete().eq("id", id);
+  if (error) return toast.error(`Suppression impossible : ${error.message}`);
+  toast.success(`${label} supprimé(e)`);
+  reloadData();
+}
 
 function Dashboard() {
   const data = useData();
@@ -102,6 +116,8 @@ function Dashboard() {
         {section === "reminders" && <RemindersView tasks={data.tasks} />}
         {section === "goals" && <GoalsView goals={data.goals} />}
         {section === "stats" && <StatsView kpi={kpi} data={data} />}
+        {section === "assistant" && <CopilotPanel voice={voice} />}
+        {section === "journal" && <JournalView />}
         {section === "settings" && <SettingsView lang={lang} setLang={setLang} />}
       </main>
 
@@ -205,7 +221,7 @@ function TaskRow({ t }: { t: Task }) {
         </p>
       </div>
       <span className={`tag ${tagClass(t.tag)}`}>{t.tag}</span>
-      <button onClick={() => supabase.from("tasks").delete().eq("id", t.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-neon-red" aria-label="Supprimer">
+      <button onClick={() => deleteRow("tasks", t.id, "Tâche")} className="lg:opacity-0 lg:group-hover:opacity-100 text-muted-foreground hover:text-neon-red" aria-label="Supprimer">
         <Trash2 className="h-4 w-4" />
       </button>
     </div>
@@ -220,8 +236,10 @@ function QuickAdd({ data, listId }: { data: Data; listId?: string | undefined })
     e.preventDefault();
     if (!title.trim()) return;
     const def = data.lists.find((l) => l.is_default);
-    await supabase.from("tasks").insert({ title: title.trim(), due_at: due ? new Date(due).toISOString() : null, tag, list_id: listId ?? def?.id ?? null });
-    setTitle(""); setDue("");
+    const { error } = await supabase.from("tasks").insert({ title: title.trim(), due_at: due ? new Date(due).toISOString() : null, tag, list_id: listId ?? def?.id ?? null });
+    if (error) return toast.error(`Tâche non enregistrée : ${error.message}`);
+    toast.success("Tâche enregistrée");
+    setTitle(""); setDue(""); reloadData();
   }
   return (
     <form onSubmit={add} className="flex flex-wrap gap-2 mb-3">
@@ -391,11 +409,11 @@ function TasksView({ data, query }: { data: Data; query: string }) {
               <button onClick={() => setListId(l.id)} className="flex-1 text-left px-3 py-2 text-sm truncate">
                 {l.name} {l.is_default && <span className="text-[10px] text-muted-foreground">(défaut)</span>} ({data.tasks.filter((t) => t.list_id === l.id).length})
               </button>
-              {!l.is_default && <button onClick={() => supabase.from("task_lists").delete().eq("id", l.id)} className="px-2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-neon-red"><Trash2 className="h-3.5 w-3.5" /></button>}
+              {!l.is_default && <button onClick={() => deleteRow("task_lists", l.id, "Liste")} className="px-2 lg:opacity-0 lg:group-hover:opacity-100 text-muted-foreground hover:text-neon-red"><Trash2 className="h-3.5 w-3.5" /></button>}
             </div>
           ))}
         </div>
-        <form className="flex gap-2 mt-3" onSubmit={async (e) => { e.preventDefault(); if (newList.trim()) { await supabase.from("task_lists").insert({ name: newList.trim() }); setNewList(""); } }}>
+        <form className="flex gap-2 mt-3" onSubmit={async (e) => { e.preventDefault(); if (newList.trim()) { const { error } = await supabase.from("task_lists").insert({ name: newList.trim() }); if (error) toast.error(`Liste non créée : ${error.message}`); else { toast.success("Liste créée"); setNewList(""); reloadData(); } } }}>
           <input value={newList} onChange={(e) => setNewList(e.target.value)} placeholder="Nouvelle liste" className="flex-1 min-w-0 rounded-lg bg-input/50 border px-3 py-2 text-sm" />
           <button className="rounded-lg bg-primary px-2 text-primary-foreground"><Plus className="h-4 w-4" /></button>
         </form>
@@ -431,7 +449,7 @@ function NotesView({ data, voice }: { data: Data; voice: Voice }) {
               <span>{new Date(n.created_at).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" })}</span>
               <span className="flex items-center gap-2">
                 {n.tasks_extracted > 0 && <span className="tag tag-admin">{n.tasks_extracted} tâche(s)</span>}
-                <button onClick={() => supabase.from("notes").delete().eq("id", n.id)} className="opacity-0 group-hover:opacity-100 hover:text-neon-red"><Trash2 className="h-4 w-4" /></button>
+                <button onClick={() => deleteRow("notes", n.id, "Note")} aria-label="Supprimer" className="lg:opacity-0 lg:group-hover:opacity-100 hover:text-neon-red"><Trash2 className="h-4 w-4" /></button>
               </span>
             </div>
           </Card>
@@ -482,7 +500,7 @@ function GoalsView({ goals }: { goals: Data["goals"] }) {
   return (
     <Card className="glow-purple max-w-2xl">
       <CardHead icon={<Target className="h-4 w-4 text-neon-pink" />} title="Objectifs" />
-      <form className="flex gap-2 mb-4" onSubmit={async (e) => { e.preventDefault(); if (title.trim()) { await supabase.from("goals").insert({ title: title.trim() }); setTitle(""); } }}>
+      <form className="flex gap-2 mb-4" onSubmit={async (e) => { e.preventDefault(); if (title.trim()) { const { error } = await supabase.from("goals").insert({ title: title.trim() }); if (error) toast.error(`Objectif non créé : ${error.message}`); else { toast.success("Objectif enregistré"); setTitle(""); reloadData(); } } }}>
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex : Lire 12 livres cette année 📚" className="flex-1 rounded-lg bg-input/50 border px-3 py-2 text-sm" />
         <button className="rounded-lg bg-primary px-3 text-primary-foreground"><Plus className="h-4 w-4" /></button>
       </form>
@@ -492,7 +510,7 @@ function GoalsView({ goals }: { goals: Data["goals"] }) {
             <div className="flex justify-between text-sm mb-2">
               <span>{g.title}</span>
               <span className="flex items-center gap-2">{g.progress}%
-                <button onClick={() => supabase.from("goals").delete().eq("id", g.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-neon-red"><Trash2 className="h-3.5 w-3.5" /></button>
+                <button onClick={() => deleteRow("goals", g.id, "Objectif")} className="lg:opacity-0 lg:group-hover:opacity-100 text-muted-foreground hover:text-neon-red"><Trash2 className="h-3.5 w-3.5" /></button>
               </span>
             </div>
             <input type="range" min={0} max={100} defaultValue={g.progress} className="w-full accent-primary"

@@ -44,8 +44,10 @@ export function useData() {
     for (const table of ["tasks", "notes", "goals", "task_lists"])
       ch.on("postgres_changes", { event: "*", schema: "public", table }, refresh);
     ch.subscribe();
+    window.addEventListener("ultra:reload", refresh);
     return () => {
       clearTimeout(timer);
+      window.removeEventListener("ultra:reload", refresh);
       supabase.removeChannel(ch);
     };
   }, [load]);
