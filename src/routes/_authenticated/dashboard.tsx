@@ -500,7 +500,7 @@ function GoalsView({ goals }: { goals: Data["goals"] }) {
   return (
     <Card className="glow-purple max-w-2xl">
       <CardHead icon={<Target className="h-4 w-4 text-neon-pink" />} title="Objectifs" />
-      <form className="flex gap-2 mb-4" onSubmit={async (e) => { e.preventDefault(); if (title.trim()) { await supabase.from("goals").insert({ title: title.trim() }); setTitle(""); } }}>
+      <form className="flex gap-2 mb-4" onSubmit={async (e) => { e.preventDefault(); if (title.trim()) { const { error } = await supabase.from("goals").insert({ title: title.trim() }); if (error) toast.error(`Objectif non créé : ${error.message}`); else { toast.success("Objectif enregistré"); setTitle(""); reloadData(); } } }}>
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex : Lire 12 livres cette année 📚" className="flex-1 rounded-lg bg-input/50 border px-3 py-2 text-sm" />
         <button className="rounded-lg bg-primary px-3 text-primary-foreground"><Plus className="h-4 w-4" /></button>
       </form>
