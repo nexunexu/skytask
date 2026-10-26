@@ -37,8 +37,19 @@ const NAV: { id: Section; label: string; icon: typeof Search }[] = [
   { id: "settings", label: "Paramètres", icon: Settings },
 ];
 
-const toggleTask = (t: Task) =>
-  supabase.from("tasks").update({ done: !t.done, completed_at: t.done ? null : new Date().toISOString() }).eq("id", t.id);
+const reloadData = () => window.dispatchEvent(new Event("ultra:reload"));
+async function toggleTask(t: Task) {
+  const { error } = await supabase.from("tasks").update({ done: !t.done, completed_at: t.done ? null : new Date().toISOString() }).eq("id", t.id);
+  if (error) return toast.error(`Impossible de modifier la tâche : ${error.message}`);
+  toast.success(t.done ? "Tâche rouverte" : "Tâche terminée ✅");
+  reloadData();
+}
+async function deleteRow(table: "tasks" | "notes" | "goals" | "task_lists", id: string, label: string) {
+  const { error } = await supabase.from(table).delete().eq("id", id);
+  if (error) return toast.error(`Suppression impossible : ${error.message}`);
+  toast.success(`${label} supprimé(e)`);
+  reloadData();
+}
 
 function Dashboard() {
   const data = useData();
