@@ -43,13 +43,13 @@ const NAV: { id: Section; label: string; icon: typeof Search }[] = [
 const reloadData = () => window.dispatchEvent(new Event("ultra:reload"));
 async function toggleTask(t: Task) {
   const { error } = await supabase.from("tasks").update({ done: !t.done, completed_at: t.done ? null : new Date().toISOString() }).eq("id", t.id);
-  if (error) return toast.error(`Impossible de modifier la tâche : ${error.message}`);
+  if (error) { toast.error(`Impossible de modifier la tâche : ${error.message}`); return; }
   toast.success(t.done ? "Tâche rouverte" : "Tâche terminée ✅");
   reloadData();
 }
 async function deleteRow(table: "tasks" | "notes" | "goals" | "task_lists", id: string, label: string) {
   const { error } = await supabase.from(table).delete().eq("id", id);
-  if (error) return toast.error(`Suppression impossible : ${error.message}`);
+  if (error) { toast.error(`Suppression impossible : ${error.message}`); return; }
   toast.success(`${label} supprimé(e)`);
   reloadData();
 }
@@ -237,7 +237,7 @@ function QuickAdd({ data, listId }: { data: Data; listId?: string | undefined })
     if (!title.trim()) return;
     const def = data.lists.find((l) => l.is_default);
     const { error } = await supabase.from("tasks").insert({ title: title.trim(), due_at: due ? new Date(due).toISOString() : null, tag, list_id: listId ?? def?.id ?? null });
-    if (error) return toast.error(`Tâche non enregistrée : ${error.message}`);
+    if (error) { toast.error(`Tâche non enregistrée : ${error.message}`); return; }
     toast.success("Tâche enregistrée");
     setTitle(""); setDue(""); reloadData();
   }
