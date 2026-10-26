@@ -1,5 +1,27 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792864894401,
+      "tag": "0000_create_tasks_notes",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792940572433,
+      "tag": "0001_attachments_and_copilot_operations",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792999012557,
+      "tag": "0002_copilot_audit_outcomes",
+      "breakpoints": true
+    }
+  ]
 }
